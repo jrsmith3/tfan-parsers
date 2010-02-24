@@ -3,7 +3,6 @@ Spektrum-Type :    Auger
 Technique     :    AES
 SourceLabel   :    egun
 SourceEnergy  :    0.000000
-Lophe9c uteeT5xo gevu8Iey ohYai4ei Ais8eiro ooVah9ji chu5Mief tiThoc3i
 Mode          :    Pulse
 Channels      :    2
 Samples       :    13
@@ -14,6 +13,7 @@ ResolutionMode:    dE/E=const.
 Resolution [%]:    0.100000
 Data Points   :    807
 Scan-Number   :    1
+Lophe9c uteeT5xo gevu8Iey ohYai4ei Ais8eiro ooVah9ji chu5Mief tiThoc3i
 Dwell Time    :    100
 Retrace Time  :    3000
 DescriptionLen:    0

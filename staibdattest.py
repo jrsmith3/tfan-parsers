@@ -1,6 +1,12 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+__author__ = "Joshua Ryan Smith (jrsmith@cmu.edu)"
+__version__ = ""
+__date__ = ""
+__copyright__ = "Copyright (c) 2010 Joshua Ryan Smith"
+__license__ = "GPL"
+
 """
 Tests the StaibDat class.
 

@@ -1,6 +1,12 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+__author__ = "Joshua Ryan Smith (jrsmith@cmu.edu)"
+__version__ = ""
+__date__ = ""
+__copyright__ = "Copyright (c) 2010 Joshua Ryan Smith"
+__license__ = "GPL"
+
 import re
 import pdb
 
@@ -227,7 +233,7 @@ class StaibDat(dict):
       self["Channel_1"]["value"].append(float(parsedData.group(2)))
       self["Channel_2"]["value"].append(float(parsedData.group(3)))
 
-  def convertbasisdata(self):
+  def convertbasisdatatovolts(self):
     """
     Convert the data in self["Basis"]["value"] from mV to V.
 
@@ -235,10 +241,28 @@ class StaibDat(dict):
     mV instead of V like everything else in the Staib .dat files.
     """
     
-    basisValues = self["Basis"]["value"][:]/1000
-    self["Basis"]["value"] = basisValues
+    newValues = []
+    for basisValue in self["Basis"]["value"]:
+      newValues.append(basisValue/1000)
+    
+    self["Basis"]["value"] = newValues
     self["Basis"]["unit"] = "V"
-      
+    
+  def convertbasisdatatobindingenergy(self):
+    """
+    Convert the data in self["Basis"]["value"] from kinetic to binding energy.
+    
+    This method subtracts the energy of the photons from the Basis data.
+    """
+    
+    # Its a hack! You need to convert the basis data to V before this method
+    # will work properly.
+    
+    newValues = []
+    for basisValue in self["Basis"]["value"]:
+      newValues.append(basisValue-self["SourceEnergy"]["value"])
+    
+    self["Basis"]["value"] = newValues
     
 class FormatError(Exception):
   """

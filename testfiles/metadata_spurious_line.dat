@@ -3,13 +3,13 @@ Spektrum-Type :    Auger
 Technique     :    AES
 SourceLabel   :    egun
 SourceEnergy  :    0.000000
-Lophe9c uteeT5xo gevu8Iey ohYai4ei Ais8eiro ooVah9ji chu5Mief tiThoc3i
 Mode          :    Pulse
 Channels      :    2
 Samples       :    13
 Startenergy[V]:    199.969482
 Stopenergy [V]:    599.984741
 Stepwidth     :    0.495918
+Lophe9c uteeT5xo gevu8Iey ohYai4ei Ais8eiro ooVah9ji chu5Mief tiThoc3i
 ResolutionMode:    dE/E=const.
 Resolution [%]:    0.100000
 Data Points   :    807

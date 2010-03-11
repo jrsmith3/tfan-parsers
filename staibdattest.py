@@ -178,7 +178,8 @@ class APITest(unittest.TestCase):
   
   def testStaibDatfilenameExist(self):
     """filename key should exist."""
-    pass
+    SD = StaibDat(self.filename)
+    self.assertTrue("filename" in SD)
     
   def testStaibDatfilenameStr(self):
     """filename data should be a string."""
@@ -192,20 +193,27 @@ class APITest(unittest.TestCase):
     
   def testStaibDatfileTextExist(self):
     """fileText key should exist."""
-    pass
+    SD = StaibDat(self.filename)
+    self.assertTrue("fileText" in SD)
     
   def testStaibDatfileTextStr(self):
     """fileText data should be a string."""
     SD = StaibDat(self.filename)
-    self.assertEqual(type(SD["fileTest"]),type(str()))
+    self.assertEqual(type(SD["fileText"]),type(list()))
     
   def testStaibDatfileTextVal(self):
     """fileText data should match the data in the file."""
-    pass
+    # open the data file and turn it into a list with readlines.
+    datFile = open(self.filename,"r")
+    fileTextList = datFile.readlines()
+    datFile.close()
+    SD = StaibDat(self.filename)
+    self.assertEqual(fileTextList,SD["fileText"])
     
   def testStaibDatKEExist(self):
     """KE key should exist."""
-    pass
+    SD = StaibDat(self.filename)
+    self.assertTrue("KE" in SD)
     
   def testStaibDatKEArray(self):
     """KE data should be a numpy array."""
@@ -219,10 +227,14 @@ class APITest(unittest.TestCase):
     
   def testStaibDatKEValues(self):
     """KE array should have the proper values."""
+    SD = StaibDat(self.filename)
+    KEArray = array(SD["Basis"]["value"])/1000
+    self.assertTrue(all(KEArray == SD["KE"]))
 
   def testStaibDatBEExist(self):
     """BE key should exist."""
-    pass
+    SD = StaibDat(self.filename)
+    self.assertTrue("BE" in SD)
     
   def testStaibDatBEArray(self):
     """BE data should be a numpy array."""
@@ -236,11 +248,14 @@ class APITest(unittest.TestCase):
     
   def testStaibDatBEValues(self):
     """BE array should have the proper values."""
-    pass
+    SD = StaibDat(self.filename)
+    BEArray = (array(SD["Basis"]["value"])/1000) - SD["SourceEnergy"]["value"]
+    self.assertTrue(all(BEArray == SD["BE"]))
   
   def testStaibDatC1Exist(self):
     """C1 key should exist."""
-    pass
+    SD = StaibDat(self.filename)
+    self.assertTrue("C1" in SD)
     
   def testStaibDatC1Array(self):
     """C1 data should be a numpy array."""
@@ -254,11 +269,14 @@ class APITest(unittest.TestCase):
     
   def testStaibDatC1Values(self):
     """C1 array should have the proper values."""
-    pass
+    SD = StaibDat(self.filename)
+    C1Array = array(SD["Channel_1"]["value"])
+    self.assertTrue(all(C1Array == SD["C1"]))
     
   def testStaibDatC2Exist(self):
     """C2 key should exist."""
-    pass
+    SD = StaibDat(self.filename)
+    self.assertTrue("C2" in SD)
     
   def testStaibDatC2Array(self):
     """C2 data should be a numpy array."""
@@ -272,7 +290,9 @@ class APITest(unittest.TestCase):
     
   def testStaibDatC2Values(self):
     """C2 array should have the proper values."""
-    pass
+    SD = StaibDat(self.filename)
+    C2Array = array(SD["Channel_2"]["value"])
+    self.assertTrue(all(C2Array == SD["C2"]))
   
 if __name__ == '__main__':
   unittest.main()

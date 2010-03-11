@@ -28,7 +28,8 @@ class StaibDat(dict):
   
   There are several data that all StaibDat objects have (units in brackets):
     filename: The name of the file from which the data in the object came.
-    fileText: The full text of the data file.
+    fileText: A list with the full text of the data file. Each line of the file
+      is a new list item.
     KE [eV]: A numpy array containing the kinetic energy value of the electrons.
     BE [eV]: A numpy array containing the binding energy of the electrons 
       calculated using the value of the source energy. Note that this array will
@@ -56,14 +57,14 @@ class StaibDat(dict):
     
     # Pull in the data from the file and close the file.
     datFile = open(filename,"r")
-    self.fileText = datFile.readlines()
+    self["fileText"] = datFile.readlines()
     datFile.close()
     
     # Verify the data file has the correct structure.
     self.verifystructure()
     
     # Step through the lines and match them.
-    for line in self.fileText:
+    for line in self["fileText"]:
       self.parseline(line)
       
     # Verify that the metadata and data in the file agree.
@@ -79,7 +80,7 @@ class StaibDat(dict):
     
     lineTypeList = []
     
-    for line in self.fileText:
+    for line in self["fileText"]:
       lineTypeList.append(self.verifyline(line))
 
     if "other" in lineTypeList:

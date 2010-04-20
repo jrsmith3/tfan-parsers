@@ -11,7 +11,7 @@ from numpy import *
 
 class StaibDat(dict):
   """
-  StaibDat, child of dict.
+  Imports XPS and AES data from Staib .dat file.
 
   The StaibDat class imports data from a Staib AES or XPS .dat file created by 
   the winspectro software, and makes this data available like a python 
@@ -28,8 +28,8 @@ class StaibDat(dict):
   
   There are several data that all StaibDat objects have (units in brackets):
     filename: The name of the file from which the data in the object came.
-    fileText: A list with the full text of the data file. Each line of the file
-      is a new list item.
+    fileText: A list with the full text of the data file. Each list item 
+      contains a single line of the file.
     KE [eV]: A numpy array containing the kinetic energy value of the electrons.
     BE [eV]: A numpy array containing the binding energy of the electrons 
       calculated using the value of the source energy. Note that this array will

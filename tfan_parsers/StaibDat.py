@@ -351,9 +351,3 @@ class StaibDat(dict):
         value += weight * data[i + offset]
       smooth_data.append(value)
     return numpy.array(smooth_data)
-
-#class FormatError(Exception):
-  #"""
-  #"""
-  #pass
-  

@@ -1,17 +1,11 @@
 # -*- coding: utf-8 -*-
 
-__author__ = "Joshua Ryan Smith (jrsmith@cmu.edu)"
-__version__ = ""
-__date__ = ""
-__copyright__ = "Copyright (c) 2010 Joshua Ryan Smith"
-__license__ = "GPL"
-
 import re
-from numpy import *
+import numpy
 
 class StaibDat(dict):
   """
-  Imports XPS and AES data from Staib .dat file.
+  Imports XPS and AES data from Staib .dat file and provides useful features.
 
   The StaibDat class imports data from a Staib AES or XPS .dat file created by 
   the winspectro software, and makes this data available like a python 
@@ -24,9 +18,12 @@ class StaibDat(dict):
   There are several ways to access data in a StaibDat object. Since the 
   winspectro .dat files resemble the key-value pairs of a dictionary, the user
   can directly access the data pulled in from the file simply via the key in 
-  the data file. There are some rules about the names of the keys.
+  the data file. The StaibDat class fixes any keys in the .dat file so that 
+  there are no spaces or characteris that aren't text, numbers or dashes.
   
-  There are several data that all StaibDat objects have (units in brackets):
+  In addition to keys explicit in the .dat file, the StaibDat class provides the
+  following data and methods for the convenience of the user (units in 
+  brackets):
     filename: The name of the file from which the data in the object came.
     fileText: A list with the full text of the data file. Each list item 
       contains a single line of the file.
@@ -39,6 +36,8 @@ class StaibDat(dict):
       energy for channel 1.
     C2 [count]: A numpy array containing the number of counts for a particular
       energy for channel 2.
+    smooth: Method that returns a numpy array of smoothed data.
+    differentiate: Method that returns numpy array of first derivative of data.
       
   Generally, the user will probably find it easier to work with the KE, BE, etc.
   data as opposed to the dictionary data pulled from the file itself.
@@ -256,12 +255,102 @@ class StaibDat(dict):
     and therefore we don't have to compensate for the analyzer work function.
     """
     
-    self["KE"] = array(self["Basis"]["value"])/1000
+    self["KE"] = numpy.array(self["Basis"]["value"])/1000
     self["BE"] = self["KE"] - self["SourceEnergy"]["value"]
-    self["C1"] = array(self["Channel_1"]["value"])
-    self["C2"] = array(self["Channel_2"]["value"])
+    self["C1"] = numpy.array(self["Channel_1"]["value"])
+    self["C2"] = numpy.array(self["Channel_2"]["value"])
+  
+  def smooth(self, key, kernel = 13, order = 3):
+    """
+    Returns numpy array of smoothed data.
     
+    This method uses Savitzky-Golay to smooth the data given in one of the 
+    StaibDat class's default data arrays. Input arguments as well as their 
+    default values are given as follows:
+      key: A string indicating which of the object's data should be smoothed 
+        (e.g. C1, C2).
+      kernel: A positive integer giving the number of points the smoothing 
+        algorithm should consider. Default = 13.
+      order: A positive integer giving the order of the polynomial used in the 
+        smoothing algorithm. Default = 3.
+        
+    The implementation of Savitzky-Golay was wholesale copied and slightly 
+    modified from the SciPy cookbook: 
+      http://www.scipy.org/Cookbook/SavitzkyGolay
+
+    See the original Savitzky-Golay paper at DOI: 10.1021/ac60214a047
+    """
+
+    return self.savitzky_golay(self[key],kernel,order,deriv = 0)
+  
+  def differentiate(self, key, kernel = 13, order= 3):
+    """
+    Returns numpy array of approximation of first derivative of data.
     
+    This method uses Savitzky-Golay to approximate the first derivative of the 
+    data given in one of the StaibDat class's default data arrays. Input 
+    arguments as well as their default values are given as follows:
+      key: A string indicating which of the object's data should be smoothed 
+        (e.g. C1, C2).
+      kernel: A positive integer giving the number of points the smoothing 
+        algorithm should consider. Default = 13.
+      order: A positive integer giving the order of the polynomial used in the 
+        smoothing algorithm. Default = 3.
+        
+    The implementation of Savitzky-Golay was wholesale copied and slightly 
+    modified from the SciPy cookbook: 
+      http://www.scipy.org/Cookbook/SavitzkyGolay
+
+    See the original Savitzky-Golay paper at DOI: 10.1021/ac60214a047
+    """
+
+    return self.savitzky_golay(self[key],kernel,order,deriv = 1)
+
+  def savitzky_golay(self, data, kernel, order, deriv):
+    """
+    Return smooth or differentiated data according to the Savitzky-Golay 
+    algorithm.
+    
+    The implementation of Savitzky-Golay was wholesale copied and slightly 
+    modified from the SciPy cookbook: 
+      http://www.scipy.org/Cookbook/SavitzkyGolay
+
+    See the original Savitzky-Golay paper at DOI: 10.1021/ac60214a047
+    """
+    try:
+      kernel = abs(int(kernel))
+      order = abs(int(order))
+    except ValueError, msg:
+      raise ValueError("kernel and order have to be of type int (floats will be converted).")
+    if kernel % 2 != 1 or kernel < 1:
+      raise TypeError("kernel size must be a positive odd number, was: %d" % kernel)
+    if kernel < order + 2:
+      raise TypeError("kernel is to small for the polynomals\nshould be > order + 2")
+
+    # a second order polynomal has 3 coefficients
+    order_range = range(order+1)
+    half_window = (kernel -1) // 2
+    b = numpy.mat([[k**i for i in order_range] for k in range(-half_window, half_window+1)])
+    # since we don't want the derivative, else choose [1] or [2], respectively
+    m = numpy.linalg.pinv(b).A[deriv]
+    window_size = len(m)
+    half_window = (window_size-1) // 2
+
+    # precompute the offset values for better performance
+    offsets = range(-half_window, half_window+1)
+    offset_data = zip(offsets, m)
+
+    smooth_data = list()
+
+    # temporary data, with padded zeros (since we want the same length after smoothing)
+    data = numpy.concatenate((numpy.zeros(half_window), data, numpy.zeros(half_window)))
+    for i in range(half_window, len(data) - half_window):
+      value = 0.0
+      for offset, weight in offset_data:
+        value += weight * data[i + offset]
+      smooth_data.append(value)
+    return numpy.array(smooth_data)
+
 class FormatError(Exception):
   """
   """

@@ -1,12 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-__author__ = "Joshua Ryan Smith (jrsmith@cmu.edu)"
-__version__ = ""
-__date__ = ""
-__copyright__ = "Copyright (c) 2010 Joshua Ryan Smith"
-__license__ = "GPL"
-
 """
 Tests the StaibDat class.
 
@@ -16,18 +10,12 @@ imports the data correctly. Finally, they check to see if the StaibDat class
 can figure out if the imported file is not self-consistent.
 """
 
-__author__ = "Joshua Ryan Smith (jrsmith@cmu.edu)"
-__version__ = ""
-__date__ = "2010.02.10 18:08"
-__copyright__ = "Copyright (c) 2010 Joshua Ryan Smith"
-__license__ = "GPL"
-
-from StaibDat import StaibDat
-from StaibDat import FormatError
+from tfan_parsers import StaibDat
+from tfan_parsers import FormatError
 import unittest
 import random
 import os
-from numpy import *
+import numpy
 
 class InvalidDataFile(unittest.TestCase):
   """
@@ -218,7 +206,7 @@ class APITest(unittest.TestCase):
   def testStaibDatKEArray(self):
     """KE data should be a numpy array."""
     SD = StaibDat(self.filename)
-    self.assertEqual(type(SD["KE"]),ndarray)
+    self.assertEqual(type(SD["KE"]),numpy.ndarray)
     
   def testStaibDatKESize(self):
     """KE array should be the correct size."""
@@ -228,7 +216,7 @@ class APITest(unittest.TestCase):
   def testStaibDatKEValues(self):
     """KE array should have the proper values."""
     SD = StaibDat(self.filename)
-    KEArray = array(SD["Basis"]["value"])/1000
+    KEArray = numpy.array(SD["Basis"]["value"])/1000
     self.assertTrue(all(KEArray == SD["KE"]))
 
   def testStaibDatBEExist(self):
@@ -239,7 +227,7 @@ class APITest(unittest.TestCase):
   def testStaibDatBEArray(self):
     """BE data should be a numpy array."""
     SD = StaibDat(self.filename)
-    self.assertEqual(type(SD["BE"]),ndarray)
+    self.assertEqual(type(SD["BE"]),numpy.ndarray)
     
   def testStaibDatBESize(self):
     """BE array should be the correct size."""
@@ -249,7 +237,7 @@ class APITest(unittest.TestCase):
   def testStaibDatBEValues(self):
     """BE array should have the proper values."""
     SD = StaibDat(self.filename)
-    BEArray = (array(SD["Basis"]["value"])/1000) - SD["SourceEnergy"]["value"]
+    BEArray = (numpy.array(SD["Basis"]["value"])/1000) - SD["SourceEnergy"]["value"]
     self.assertTrue(all(BEArray == SD["BE"]))
   
   def testStaibDatC1Exist(self):
@@ -260,7 +248,7 @@ class APITest(unittest.TestCase):
   def testStaibDatC1Array(self):
     """C1 data should be a numpy array."""
     SD = StaibDat(self.filename)
-    self.assertEqual(type(SD["C1"]),ndarray)
+    self.assertEqual(type(SD["C1"]),numpy.ndarray)
     
   def testStaibDatC1Size(self):
     """C1 array should be the correct size."""
@@ -270,7 +258,7 @@ class APITest(unittest.TestCase):
   def testStaibDatC1Values(self):
     """C1 array should have the proper values."""
     SD = StaibDat(self.filename)
-    C1Array = array(SD["Channel_1"]["value"])
+    C1Array = numpy.array(SD["Channel_1"]["value"])
     self.assertTrue(all(C1Array == SD["C1"]))
     
   def testStaibDatC2Exist(self):
@@ -281,7 +269,7 @@ class APITest(unittest.TestCase):
   def testStaibDatC2Array(self):
     """C2 data should be a numpy array."""
     SD = StaibDat(self.filename)
-    self.assertEqual(type(SD["C2"]),ndarray)
+    self.assertEqual(type(SD["C2"]),numpy.ndarray)
     
   def testStaibDatC2Size(self):
     """C2 array should be the correct size."""
@@ -291,8 +279,38 @@ class APITest(unittest.TestCase):
   def testStaibDatC2Values(self):
     """C2 array should have the proper values."""
     SD = StaibDat(self.filename)
-    C2Array = array(SD["Channel_2"]["value"])
+    C2Array = numpy.array(SD["Channel_2"]["value"])
     self.assertTrue(all(C2Array == SD["C2"]))
+  
+  def testStaibDatsmoothArray(self):
+    """smooth should return a numpy array"""
+    SD = StaibDat(self.filename)
+    self.assertEqual(type(SD.smooth("C1")),numpy.ndarray)
+  
+  def testStaibDatsmoothSize(self):
+    """smooth should return an array of the same size as what it was given"""
+    SD = StaibDat(self.filename)
+    self.assertEqual(SD.smooth("C1").shape[0],SD["C1"].shape[0])
+  
+  def testStaibDatsmoothInvalidKey(self):
+    """smooth should fail if its given a key that doesn't refer to a numpy array"""
+    SD = StaibDat(self.filename)
+    self.assertRaises(TypeError,StaibDat.smooth,"fileText")
+  
+  def testStaibDatdifferentiateArray(self):
+    """differentiate should return a numpy array"""
+    SD = StaibDat(self.filename)
+    self.assertEqual(type(SD.differentiate("C1")),numpy.ndarray)
+  
+  def testStaibDatdifferentiateSize(self):
+    """differentiate should return an array of the same size as what it was given"""
+    SD = StaibDat(self.filename)
+    self.assertEqual(SD.differentiate("C1").shape[0],SD["C1"].shape[0])
+  
+  def testStaibDatdifferentiateInvalidKey(self):
+    """differentiate should fail if its given a key that doesn't refer to a numpy array"""
+    SD = StaibDat(self.filename)
+    self.assertRaises(TypeError,StaibDat.differentiate,"fileText")
   
 if __name__ == '__main__':
   unittest.main()

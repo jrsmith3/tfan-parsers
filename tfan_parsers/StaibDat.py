@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from Errors import FormatError
 import re
 import numpy
 
@@ -351,8 +352,8 @@ class StaibDat(dict):
       smooth_data.append(value)
     return numpy.array(smooth_data)
 
-class FormatError(Exception):
-  """
-  """
-  pass
+#class FormatError(Exception):
+  #"""
+  #"""
+  #pass
   

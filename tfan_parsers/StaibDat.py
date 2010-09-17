@@ -11,16 +11,16 @@ class StaibDat(dict):
   The StaibDat class imports data from a Staib AES or XPS .dat file created by 
   the winspectro software, and makes this data available like a python 
   dictionary. The class tests the data file and the data itself before it 
-  returns an object. See the README file for more information about the 
-  assumptions made regarding the structure of these files. Since there is no 
-  published standard of the structure of the Staib .dat file format, the 
-  parsing done by this class will be as general as possible.
+  returns an object. There is no published standard for the data files generated
+  from the winspectro software; the best guess of the structure of these files
+  is documented in WINSPECTRO_DATA_FILE_STRUCTURE.TXT. This importer is written
+  against the description in that file.
   
   There are several ways to access data in a StaibDat object. Since the 
   winspectro .dat files resemble the key-value pairs of a dictionary, the user
   can directly access the data pulled in from the file simply via the key in 
   the data file. The StaibDat class fixes any keys in the .dat file so that 
-  there are no spaces or characteris that aren't text, numbers or dashes.
+  there are no spaces or characters that aren't text, numbers or dashes.
   
   In addition to keys explicit in the .dat file, the StaibDat class provides the
   following data and methods for the convenience of the user (units in 
@@ -43,7 +43,18 @@ class StaibDat(dict):
   Generally, the user will probably find it easier to work with the KE, BE, etc.
   data as opposed to the dictionary data pulled from the file itself.
   """
+  
+  # Include patterns for each type of data found in the lines of the file.
+  #self["metadataRE"] = 
+  #self["reserved"] = 
+  self["datLabelsRE"] = \
+  	re.compile("\s+(Basis\[mV\])\s+(Channel_1)\s+(Channel_2)")
+  #self["datRE"] = re.compile("\s+(Basis\[mV\]|\d+)" +\
+  #                     "\s+(Channel_1|\d+)" +\
+  #                     "\s+(Channel_2|\-*\d+)")
+  self["datRE"] = re.compile("\s+(\d+)\s+(\d+)\s+(\-*\d+)")
 
+  
   def __init__(self,filename):
     """
     Instantiation of StaibDat object.
@@ -78,8 +89,13 @@ class StaibDat(dict):
     Verify that the imported text data has the proper structure.
     """
     
+    # First, make a line-by-line list of the kind of data contained in each
+    # line: either metadata, reserved, datalabels, data, or other.
     lineTypeList = []
     
+    # If there is any data in the list of type "other," we know we are dealing 
+    # with a file containing bad data. Additionally, there should be a single
+    # line of "datalabels" type data in the file.
     for line in self["fileText"]:
       lineTypeList.append(self.verifyline(line))
 
@@ -88,6 +104,9 @@ class StaibDat(dict):
     elif lineTypeList.count("datalabels") != 1:
       raise FormatError
     
+    # In a properly formatted file, the types of lines should come in the 
+    # following order: metadata, reserved, datalabels, data. If not, the file
+    # isn't properly formatted and the import should fail.
     compressedList = []
     
     for lineType in lineTypeList:

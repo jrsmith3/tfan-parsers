@@ -3,12 +3,28 @@ The StaibDat class attempts to import data and metadata from the ASCII .dat file
 
 
 == Structure of Staib winspectro .dat files. ==
-It appears that the text files winspectro exports have three man sections in the following order: metadata, reserved, and data. These sections are always in that order, and are never interleaved. The metadata section has two strings which are separated by a colon followed by four spaces (":    "). There is one and only one colon and whitespace separator in the metadata section. The reserved section is simply the text, "reserved", on a line by itself. The data section contains columns of data separated by whitespace. Additionally, the first line of the data section has labels for each of the columns, while the following lines have only values. The data section has one and only one labels line which is never interleaved with the values of data. The data section appears to have exactly three columns. All of the data values appear to be integers.
+It appears that the text files winspectro exports have four main sections in the following order: metadata, reserved, datakeys, and datavalues. These sections are always in that order, and are never interleaved. The metadata section has two strings which are separated by a colon followed by four spaces (":    "). There is one and only one colon and whitespace separator in the metadata section per line. The reserved section is simply the text, "reserved", on a line by itself. The datakeys section is a single line containing strings separated by whitespace which contain the keys for the data contained in the datavals section. The datavals section contains columns of numerical values, which all appear to be integers. The number of keys in the datakeys section must equal the number of columns of the datavals section. The data section has at least two columns, possibly more.
 
-Some of the metadata lines have units which are enclosed in brackets ([,]). Additionally, the label for the first column in the data section has a unit, but the other two labels do not.
+Some of the metadata lines have units which are enclosed in brackets ([,]). Additionally, the strings in the datakeys section may also have units in brackets.
 
 There are some metadata lines that quantitatively describe the data. For example, there are metadata lines named "Startenergy[V]", "Stopenergy [V]", "Stepwidth", and "Data Points". These lines could be used to verify the structure and validity of the winspectro file.
 
+=== Backus-Naur Form of winspectro data file grammar ===
+To make coding the parser easier, here is the BNF of each type of data that is found in the lines of the file.
+
+metadata ::= key [unit] equalsdelimiter value
+reserved ::= "reserved"
+datakeys ::= key [unit] (key [unit])+
+datavalues :: = integer integer+
+
+key ::= keyword+
+unit ::= "[" unitword "]"
+equalsdelimiter ::= ":    "
+value ::= valueword+
+
+keyword ::= collection of one or more characters which are any alpha or "-"
+valueword ::= collection of one or more characters which are any alpha or num or . or / or = or :
+unitword ::= collection of one or more alpha characters or %
 
 == Tests to verify winspectro files. ==
 * The metadata section should come first, followed by the reserved section, followed by the data section.
@@ -29,7 +45,7 @@ Here's how the various parts of the file will be handled.
 metadata:
 The StaibDat object will split the lines on the colon and whitespace, where the string on the left is the dictionary key, and the string on the right is the dictionary value. The StaibDat object will strip any extra whitespace before or after of the key string. Also, the StaibDat object will remove any whitespace in the middle of the key string and compress the remaining text together. The StaibDat object will strip any whitespace before or after the value string also. Some of the metadata lines have either implicit or explicit units. For those lines that don't have units, the StaibDat object will add the key string as the dictionary key and the value string as the dictionary value.
 
-Metadata keys have explicit units if the last characteris contain brackets enclosing a string, e.g. [V]. The StaibDat object will break off this unit from the key string leaving only a string that can be legitimately used as a dictionary key. Some metadata keys have implicit units defined by me. The StaibDat object will include these units. See the source for more details.
+Metadata keys have explicit units if the last characters contain brackets enclosing a string, e.g. [V]. The StaibDat object will break off this unit from the key string leaving only a string that can be legitimately used as a dictionary key. Some metadata keys have implicit units defined by me. The StaibDat object will include these units. See the source for more details.
 
 For the metadata lines with units, the StaibDat object will use the key string as the dictionary key, but for the the dictionary value, the StaibDat object will use a dictionary with two elements: "value" and "unit". The metadata value and unit will be placed in this dictionary.
 

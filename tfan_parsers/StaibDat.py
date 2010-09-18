@@ -53,6 +53,17 @@ class StaibDat(dict):
   #                     "\s+(Channel_1|\d+)" +\
   #                     "\s+(Channel_2|\-*\d+)")
   self["datRE"] = re.compile("\s+(\d+)\s+(\d+)\s+(\-*\d+)")
+  
+  # What follows is the pyparsing versions of the different sections of the file
+  word = Word(alphanums + "!\"#$%&\'()*+,-./:;<>?@\\^_`{|}~=")
+  value = Group(OneOrMore(word))
+  equalsdelimiter = Suppress(Literal(":    "))
+  unit = Literal("[") + word + Literal("]")
+  key = OneOrMore(word)
+  datavalues = Word(nums) + OneOrMore(Word(nums))
+  datakeys = key + unit + OneOrMore(key + unit)
+  reserved = Literal("reserved")
+  metadata = key + unit + equalsdelimiter + value
 
   
   def __init__(self,filename):

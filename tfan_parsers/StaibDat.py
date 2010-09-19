@@ -3,28 +3,21 @@
 from Errors import FormatError
 import re
 import numpy
+import pyparsing
 
 class StaibDat(dict):
   """
   Imports XPS and AES data from Staib .dat file and provides useful features.
 
-  The StaibDat class imports data from a Staib AES or XPS .dat file created by 
-  the winspectro software, and makes this data available like a python 
-  dictionary. The class tests the data file and the data itself before it 
-  returns an object. There is no published standard for the data files generated
-  from the winspectro software; the best guess of the structure of these files
-  is documented in WINSPECTRO_DATA_FILE_STRUCTURE.TXT. This importer is written
-  against the description in that file.
+  The StaibDat class imports data from a Staib AES or XPS .dat file created by the winspectro software, and makes this data available like a python dictionary. The class tests the data file and the data itself before it returns an object. There is no published standard for the data files generated from the winspectro software; the best guess of the structure of these files is documented in WINSPECTRO_DATA_FILE_STRUCTURE.TXT. This importer is written against the description in that file.
   
-  There are several ways to access data in a StaibDat object. Since the 
-  winspectro .dat files resemble the key-value pairs of a dictionary, the user
-  can directly access the data pulled in from the file simply via the key in 
-  the data file. The StaibDat class fixes any keys in the .dat file so that 
-  there are no spaces or characters that aren't text, numbers or dashes.
+  There are several ways to access data in a StaibDat object. Since the winspectro .dat files resemble the key value pairs of a dictionary, the user can directly access the data pulled in from the file simply via the key in the data file. The StaibDat class fixes any keys in the .dat file so that there are no spaces or characters that aren't text, numbers or dashes.
   
-  In addition to keys explicit in the .dat file, the StaibDat class provides the
-  following data and methods for the convenience of the user (units in 
-  brackets):
+  Some of the data in a winspectro .dat file come with explicit units, while some of the data has implicit units. This class will only include the explicit units in the returned StaibDat object. See the WINSPECTRO_DATA_FILE_STRUCTURE.TXT for my best guess about the implicit units of some of the data.
+  
+  In the winspectro .dat file, there appear to be two main sections: the metadata section at the top, and the data section below. For metadata with units, the StaibDat object returns a dictionary containing the value and unit. Otherwise, accessing the metadata will return only a value. For data, each key returns a dictionary containing a unit (possibly empty) and a list of values.
+  
+  In addition to keys explicit in the .dat file, the StaibDat class provides the following data and methods for the convenience of the user (units in brackets):
     filename: The name of the file from which the data in the object came.
     fileText: A list with the full text of the data file. Each list item 
       contains a single line of the file.
@@ -33,38 +26,70 @@ class StaibDat(dict):
       calculated using the value of the source energy. Note that this array will
       still be calculated for AES data, but will equal KE since the source 
       energy is zero.
-    C1 [count]: A numpy array containing the number of counts for a particular
-      energy for channel 1.
-    C2 [count]: A numpy array containing the number of counts for a particular
-      energy for channel 2.
+    Cn [count]: A numpy array containing the number of counts for a particular
+      energy for channel n. Note that n is an index which can equal any integer.
+      When accessing this data, the user will have to specify the index. 
+      Attempting to access the literal Cn data will fail.
     smooth: Method that returns a numpy array of smoothed data.
     differentiate: Method that returns numpy array of first derivative of data.
       
-  Generally, the user will probably find it easier to work with the KE, BE, etc.
-  data as opposed to the dictionary data pulled from the file itself.
+  Generally, the user will find it easiest to work with the KE, BE, etc. data as opposed to the dictionary data pulled from the file itself.
   """
   
-  # Include patterns for each type of data found in the lines of the file.
-  #self["metadataRE"] = 
-  #self["reserved"] = 
-  self["datLabelsRE"] = \
-  	re.compile("\s+(Basis\[mV\])\s+(Channel_1)\s+(Channel_2)")
-  #self["datRE"] = re.compile("\s+(Basis\[mV\]|\d+)" +\
-  #                     "\s+(Channel_1|\d+)" +\
-  #                     "\s+(Channel_2|\-*\d+)")
-  self["datRE"] = re.compile("\s+(\d+)\s+(\d+)\s+(\-*\d+)")
-  
-  # What follows is the pyparsing versions of the different sections of the file
-  word = Word(alphanums + "!\"#$%&\'()*+,-./:;<>?@\\^_`{|}~=")
-  value = Group(OneOrMore(word))
-  equalsdelimiter = Suppress(Literal(":    "))
-  unit = Literal("[") + word + Literal("]")
-  key = OneOrMore(word)
-  datavalues = Word(nums) + OneOrMore(Word(nums))
-  datakeys = key + unit + OneOrMore(key + unit)
-  reserved = Literal("reserved")
-  metadata = key + unit + equalsdelimiter + value
+  #== How the StaibDat class works ==
+  #Before any parsing is done, the StaibDat class will verify that the overall structure of the data file is legitimate or otherwise raise an exception. The winspectro data files will be parsed line-by-line. The keys of the StaibDat object will be taken from the appropriate part of the .dat file, explained below. The value of the keys will also be taken from the appropriate part of the .dat file. Once the data has been imported, the StaibDat object will check to see if the data is internally consistant according to the tests listed above.
 
+  #Here's how the various parts of the file will be handled.
+
+  #metadata:
+  #The StaibDat object will split the lines on the colon and whitespace, where the string on the left is the dictionary key, and the string on the right is the dictionary value. The StaibDat object will strip any extra whitespace before or after of the key string. Also, the StaibDat object will remove any whitespace in the middle of the key string and compress the remaining text together. The StaibDat object will strip any whitespace before or after the value string also. Some of the metadata lines have either implicit or explicit units. For those lines that don't have units, the StaibDat object will add the key string as the dictionary key and the value string as the dictionary value.
+
+  #Metadata keys have explicit units if the last characters contain brackets enclosing a string, e.g. [V]. The StaibDat object will break off this unit from the key string leaving only a string that can be legitimately used as a dictionary key. Some metadata keys have implicit units defined by me. The StaibDat object will include these units. See the source for more details.
+
+  #For the metadata lines with units, the StaibDat object will use the key string as the dictionary key, but for the the dictionary value, the StaibDat object will use a dictionary with two elements: "value" and "unit". The metadata value and unit will be placed in this dictionary.
+
+  #reserved:
+  #Any lines in the reserved section of the data file will be skipped.
+
+  #data:
+  #The data block of the file appears to have three columns with some preceding whitespace. The columns are separated by additional whitespace. The first line of the data has a set of labels, where the first label has an explicit unit [mV]. The StaibDat object will make three key-value pairs in the dictionary for the data, one for each column. The dictionary key will be one of the data labels, sans unit. The value for each key will also be a two-element dictionary: value and unit. The unit for the "Basis" column will be [mV], and the unit for the other columns are [counts]. The data will be stored as an array with the value key.
+
+  #== Tests to verify winspectro files. ==
+  #* The metadata section should come first, followed by the reserved section, followed by the data section.
+  #* There should not be any lines that don't conform to the known three sections.
+  #* There should be one and only one line with labels for the data. That line should appear first in the data section.
+  #* The number of data lines in the data section should equal the value of the "Data Points" line in the metadata section.
+  #* The first Basis value in the data section should almost precisely agree with the "Startenergy[V]" value in the metadata section.
+  #* The final Basis value in the data section should almost precisely agree with the "Stop energy[V]" value in the metadata section.
+  #* The step size between all the Basis values in the data section should be equal.
+  #* The step size between all the Basis values in the data section should almost precisely agree with the "Stepwidth" value in the metadata section.
+
+  
+  
+  # Define pyparsing forms for each type of data found in lines of the file.
+  unitword = pyparsing.Word(pyparsing.alphas + "%")
+  valueword = pyparsing.Word(pyparsing.alphanums + "./=:")
+  keyword = pyparsing.Word(pyparsing.alphanums + "-_")
+  
+  # In the following I'm using setParseAction because some of the keys and values in the metadata are made up of multiple words. A priori I don't know which ones are, and I don't want to guess and write a bunch of fragile lookup lists and tests that I'll ultimately have to change later. The setParseAction method allows me to combine the multiple words into a single entry in the returned list. See p.19 of McGuire's "Getting Started with Pyparsing" for more details.
+  key = pyparsing.OneOrMore(keyword)
+  key.setParseAction(lambda tokens: " ".join(tokens))
+  unit = pyparsing.Suppress("[") + unitword + pyparsing.Suppress("]") 
+  equalsdelimiter = pyparsing.Suppress(":    ")
+  value = pyparsing.OneOrMore(valueword)
+  value.setParseAction(lambda tokens: " ".join(tokens))
+
+  # Again, I'm using setParseAction in this section. For the datavalues section, I'm using setParseAction to coerce the values directly to integers since I know they are supposed to be anyway. I will also need to use Results Names in order to make the extraction of the data from the parsed results doable.
+  self[metadata] = key.setResultsName("key") + \
+    pyparsing.Optional(unit.setResultsName("unit")) + equalsdelimiter + \
+    value.setResultsName("value")
+  self[reserved] = pyparsing.Literal("reserved")
+  self[datakeys] = pyparsing.Group(keyword.setResultsName("key") + \
+    pyparsing.Optional(unit.setResultsName("unit"))) + \
+    pyparsing.OneOrMore(pyparsing.Group(keyword.setResultsName("key") + \
+    pyparsing.Optional(unit.setResultsName("unit"))))
+  self[datavalues] = pyparsing.Word(pyparsing.nums).setParseAction(lambda tokens : int(tokens[0])) + \
+    pyparsing.OneOrMore(pyparsing.Word(pyparsing.nums).setParseAction(lambda tokens : int(tokens[0])))
   
   def __init__(self,filename):
     """
@@ -83,11 +108,10 @@ class StaibDat(dict):
     datFile.close()
     
     # Verify the data file has the correct structure.
-    self.verifystructure()
+    self.verifyandlabelstructure()
     
-    # Step through the lines and match them.
-    for line in self["fileText"]:
-      self.parseline(line)
+    # Parse the text and populate the StaibDat object's data.
+    self.parsetext()
       
     # Verify that the metadata and data in the file agree.
     self.verifydata()
@@ -95,29 +119,27 @@ class StaibDat(dict):
     # Generate the user-friendly KE, C1, etc. numpy arrays.
     self.userfriendify()
     
-  def verifystructure(self):
+  def verifyandlabelstructure(self):
     """
-    Verify that the imported text data has the proper structure.
+    Verify structure of imported text, generate list of line types.
     """
     
     # First, make a line-by-line list of the kind of data contained in each
-    # line: either metadata, reserved, datalabels, data, or other.
+    # line: either metadata, reserved, datakeys, datavalues, or other.
     lineTypeList = []
     
-    # If there is any data in the list of type "other," we know we are dealing 
-    # with a file containing bad data. Additionally, there should be a single
-    # line of "datalabels" type data in the file.
     for line in self["fileText"]:
       lineTypeList.append(self.verifyline(line))
 
+    # If there is any data in the list of type "other," we know we are dealing with a file containing bad data.
     if "other" in lineTypeList:
       raise FormatError
-    elif lineTypeList.count("datalabels") != 1:
+
+    # Additionally, there should be a single line of "datakeys" type data in the file.    
+    if lineTypeList.count("datakeys") != 1:
       raise FormatError
     
-    # In a properly formatted file, the types of lines should come in the 
-    # following order: metadata, reserved, datalabels, data. If not, the file
-    # isn't properly formatted and the import should fail.
+    # In a properly formatted file, the types of lines should come in the following order: metadata, reserved, datakeys, datavalues. If not, the file isn't properly formatted and the import should fail.
     compressedList = []
     
     for lineType in lineTypeList:
@@ -126,24 +148,40 @@ class StaibDat(dict):
       elif lineType != compressedList[-1]:
         compressedList.append(lineType)
         
-    if compressedList != ["metadata","reserved","datalabels","data"]:
+    if compressedList != ["metadata","reserved","datakeys","datavalues"]:
       raise FormatError
+    
+    # All of the lines in the data section of the file should have the same number of columns. Furthermore, the number of datakeys should equal the number of columns in the data section of the file.
+    
+    # First, find the line where the datakeys are.
+    datakeysLine = self["lineTypeList"].index("datakeys")
+    
+    # Parse the datakeys and make a list of each one, possibly with units.
+    datakeysList = self["datakeys"].parseString(self["fileText"][datakeysLine])
+    
+    # Next step through the remaining lines of the file and see if there are the same number of columns.
+    for datavaluesLine in self["fileText"][datakeysLine + 1:]:
+      # Parse the line
+      datavaluesList = self["datavalues"].parseString(datavaluesLine)
+      if len(datakeysList) != len(datavaluesList):
+        raise FormatError
+    
+    # Done checking. Keep the lineTypeList.
+    self["lineTypeList"] = lineTypeList
 
   def verifyline(self,line):
     """
     Returns a string indicating what section of the file the line comes from.
     """
-    datRE = re.compile("\s+(\d+)\s+(\d+)\s+(\-*\d+)")
-    datLabelsRE = re.compile("\s+(Basis\[mV\])\s+(Channel_1)\s+(Channel_2)")
     
-    if re.search(r":    ",line):
+    if len(self[metadata].searchString(line)) != 0:
       return "metadata"
-    elif line.strip() == "reserved":
+    elif len(self[reserved].searchString(line)) != 0:
       return "reserved"
-    elif datLabelsRE.search(line):      
-      return "datalabels"
-    elif datRE.search(line):      
-      return "data"
+    elif len(self[datakeys].searchString(line)) != 0:
+      return "datakeys"
+    elif len(self[datavalues].searchString(line)) != 0:
+      return "datavalues"
     else:
       return "other"
       
@@ -178,109 +216,71 @@ class StaibDat(dict):
       raise FormatError
     
     # The difference between each Basis value should equal Stepwidth.
-    if diffList[0] != round(self["Stepwidth"]["value"],2):
+    if diffList[0] != round(self["Stepwidth"],2):
       raise FormatError
-       
-  def parseline(self,line):
+
+      
+  def parsetext(self):
     """
-    Determine if line is metadata, reserved, data, or other. Act accordingly.
+    Steps through file text and populates the StaibDat object's data.
     """
-
-    # Set up the regular expression necessary to handle the data section of the
-    # file.
-    # !!!Note: the following re isn't as general as it could be. I could 
-    # search for one or more instances of whitespace and not-whitespace.
-    datRE = re.compile("\s+(Basis\[mV\]|\d+)" +\
-                       "\s+(Channel_1|\d+)" +\
-                       "\s+(Channel_2|\-*\d+)")
-   
-    # metadata
-    if re.search(r":    ",line):
-      self.metadata(line)
-
-    # reserved
-    elif line.strip() == "reserved":
-      # Do nothing.
-      pass
-
-    # data
-    elif datRE.search(line):      
-      self.data(line,datRE)
-     
-  def metadata(self,line):
-    """
-    Set the metadata as key:value pairs in the StaibDat object.
-
-    In the metadata part of the file, metadata keys and values are separated
-    by a colon followed by four whitespace characters. The metadata method 
-    splits the line up along that delimiter, prepares the key part of the text
-    so that it is a legitimate key string, and then sets the key:value pairs
-    in the StaibDat object.
-
-    Some metadata has either implicit or explicit units. The metadata method
-    includes these units as part of the value of the key:value pair.
-    """
-
-    # Split the key and value and remove/compress the whitespace from the key.
-    [key,value] = line.split(":    ")
-    # Strip, compress whitespace out of key string.
-    key = re.sub("\s+","",key)
-    # Strip preceeding and trailing whitespace.
-    value = value.strip()
-
-    # Deal with keys that have explicit units.
-    if key[-1] == "]":
-      # Break off the explicit unit.
-      unit = key[-2]
-      key = key[0:-3]
-      self[key] = {"value":float(value),"unit":unit}
-        
-    # Deal with keys that have implicit units.
-    elif key == "SourceEnergy":
-      self[key] = {"value":float(value),"unit":"V"}
-    elif key == "Stepwidth":
-      self[key] = {"value":float(value),"unit":"V"}
-    elif key == "DwellTime":
-      self[key] = {"value":float(value),"unit":"ms"}
-    elif key == "RetraceTime":
-      self[key] = {"value":float(value),"unit":"ms"}
-
-    # Deal with keys that have no units. Coerce the value to int if possible.
-    else:
-      try:
-        value = int(value)
-      except ValueError:
-        pass
-      self[key] = value
-   
-  def data(self,line,datRE):
-    """
-    Set the data in the StaibDat object.
-
-    In the data part of the file, the data is arranged in whitespace-separated
-    columns. The first line of the data is the labels for the columns, and each
-    subsequent line contains the actual data. In the resulting StaibDat object,
-    each column of data will have its own key:value pair; the key being the 
-    formatted column label, and the value being another dictionary. The value
-    dictionary has two keys: unit and value. The unit element is a string 
-    containing the unit of the data. The value element is an array containing 
-    the values in the column.
-    """
-
-    parsedData = datRE.match(line)
     
-    if parsedData.group(1) == "Basis[mV]":
-      self["Basis"] = {"value":[],"unit":"V"}
-      self["Channel_1"] = {"value":[],"unit":"count"}
-      self["Channel_2"] = {"value":[],"unit":"count"}
-    else:
-      self["Basis"]["value"].append(float(parsedData.group(1)))
-      self["Channel_1"]["value"].append(float(parsedData.group(2)))
-      self["Channel_2"]["value"].append(float(parsedData.group(3)))
+    # Handle all of the metadata lines.
+    for indx, line in enumerate(self["lineTypeList"]):
+      if line == "metadata":
+        # Parse the metadata line.
+        metadataLine = self["metadata"].parseString(line)
+        
+        # Try to coerce the value into a number if possible. int first, then float.
+        try:
+          value = int(metadataLine.value)
+        except:
+          try:
+            value = float(metadataLine.value)
+          except:
+            value = metadataLine.value
+        
+        # Compress out any whitespace in the metadata key.
+        key = re.sub("\s+","",metadataLine.key)
+        
+        # Some of the metadata doesn't have units. Try to make an entry with units, but don't fail if there isn't a unit.
+        try:
+          self[key] = {"value":value,
+                       "unit":metadataLine.unit}
+        except:
+          self[key] = value
+      else:
+        pass
+      
+    # Handle the data lines, including the datakeys.
+    
+    # First, find the line where the datakeys are.
+    datakeysLine = self["lineTypeList"].index("datakeys")
+    
+    # Parse the datakeys and make a list of each one, possibly with units.
+    datakeysList = self["datakeys"].parseString(self["fileText"][datakeysLine])
+    
+    # Create dict accessable data in the StaibDat object out of the datakeys.
+    for datakey in datakeysList:
+      self[datakey.key] = {"value":[]}
+      # The unit might not exist. If not, just continue on.
+      try:
+        self[datakey.key]["unit"] = datakey.unit
+      except:
+        pass
+        
+    # Next step through the remaining lines of the file and put each data value in its proper location.
+    for datavaluesLine in self["fileText"][datakeysLine + 1:]:
+      # Parse the line
+      datavaluesList = self["datavalues"].parseString(datavaluesLine)
+      # Match each data value to its proper place in the StaibDat object.
+      for indx, datavalue in enumerate(datavaluesList):
+        self[datakeysList[indx].key]["value"].append(datavalue)
+           
 
   def userfriendify(self):
     """
-    Generate the numpy arrays for KE, BE (if available), C1, and C2.
+    Generate the numpy arrays for KE, BE, and Cn.
     
     According to conversations with Staib, the analyzer has an internal bias
     and therefore we don't have to compensate for the analyzer work function.
@@ -288,8 +288,17 @@ class StaibDat(dict):
     
     self["KE"] = numpy.array(self["Basis"]["value"])/1000
     self["BE"] = self["KE"] - self["SourceEnergy"]["value"]
-    self["C1"] = numpy.array(self["Channel_1"]["value"])
-    self["C2"] = numpy.array(self["Channel_2"]["value"])
+    
+    # First, find the line where the datakeys are.
+    datakeysLine = self["lineTypeList"].index("datakeys")
+    
+    # Parse the datakeys and make a list of each one, possibly with units.
+    datakeysList = self["datakeys"].parseString(self["fileText"][datakeysLine])
+    
+    # Assign each additional channel a convenience array.
+    for indx,datakey in enumerate(datakeysList[1:]):
+      key = "C" + str(indx)
+      self[key] = numpy.array(self[datakey.key]["value"])
   
   def smooth(self, key, kernel = 13, order = 3):
     """

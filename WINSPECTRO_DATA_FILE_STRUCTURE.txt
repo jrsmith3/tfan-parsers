@@ -1,0 +1,24 @@
+2010.09.19 15:59
+== Structure of Staib winspectro .dat files. ==
+It appears that the text files winspectro exports have four main sections in the following order: metadata, reserved, datakeys, and datavalues. These sections are always in that order, and are never interleaved. The metadata section has two strings which are separated by a colon followed by four spaces (":    "). There is one and only one colon and whitespace separator in the metadata section per line. The reserved section is simply the text, "reserved", on a line by itself. The datakeys section is a single line containing strings separated by whitespace which contain the keys for the data contained in the datavals section. The datavals section contains columns of numerical values, which all appear to be integers. The number of keys in the datakeys section must equal the number of columns of the datavals section. The data section has at least two columns, possibly more.
+
+Some of the metadata lines have units which are enclosed in brackets ([,]). Additionally, the strings in the datakeys section may also have units in brackets.
+
+There are some metadata lines that quantitatively describe the data. For example, there are metadata lines named "Startenergy[V]", "Stopenergy [V]", "Stepwidth", and "Data Points". These lines could be used to verify the structure and validity of the winspectro file.
+
+=== Backus-Naur Form of winspectro data file grammar ===
+To make coding the parser easier, here is the BNF of each type of data that is found in the lines of the file.
+
+metadata ::= key [unit] equalsdelimiter value
+reserved ::= "reserved"
+datakeys ::= keyword [unit] (keyword [unit])+
+datavalues :: = integer integer+
+
+key ::= keyword+
+unit ::= "[" unitword "]"
+equalsdelimiter ::= ":    "
+value ::= valueword+
+
+keyword ::= collection of one or more characters which are any alphanum or - or _
+valueword ::= collection of one or more characters which are any alphanum or . or / or = or :
+unitword ::= collection of one or more alpha characters or %

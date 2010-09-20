@@ -237,7 +237,7 @@ class APITest(unittest.TestCase):
   def testStaibDatBEValues(self):
     """BE array should have the proper values."""
     SD = StaibDat(self.filename)
-    BEArray = (numpy.array(SD["Basis"]["value"])/1000) - SD["SourceEnergy"]["value"]
+    BEArray = (numpy.array(SD["Basis"]["value"])/1000) - SD["SourceEnergy"]
     self.assertTrue(all(BEArray == SD["BE"]))
   
   def testStaibDatC1Exist(self):

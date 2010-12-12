@@ -79,6 +79,7 @@ class StaibDat(dict):
     unitword = pyparsing.Word(pyparsing.alphas + "%")
     valueword = pyparsing.Word(pyparsing.alphanums + "./=:")
     keyword = pyparsing.Word(pyparsing.alphanums + "-_")
+    numvalue = pyparsing.Combine(pyparsing.Optional("-") + pyparsing.Word(pyparsing.nums))
     
     # In the following I'm using setParseAction because some of the keys and values in the metadata are made up of multiple words. A priori I don't know which ones are, and I don't want to guess and write a bunch of fragile lookup lists and tests that I'll ultimately have to change later. The setParseAction method allows me to combine the multiple words into a single entry in the returned list. See p.19 of McGuire's "Getting Started with Pyparsing" for more details.
     key = pyparsing.OneOrMore(keyword)
@@ -97,8 +98,11 @@ class StaibDat(dict):
       pyparsing.Optional(unit.setResultsName("unit"))) + \
       pyparsing.OneOrMore(pyparsing.Group(keyword.setResultsName("key") + \
       pyparsing.Optional(unit.setResultsName("unit"))))
-    self.__datavalues = pyparsing.Word(pyparsing.nums).setParseAction(lambda tokens : float(tokens[0])) + \
-      pyparsing.OneOrMore(pyparsing.Word(pyparsing.nums).setParseAction(lambda tokens : float(tokens[0])))
+    self.__datavalues = numvalue.setParseAction(lambda tokens : float(tokens[0])) + \
+      pyparsing.OneOrMore(numvalue.setParseAction(lambda tokens : float(tokens[0])))
+
+    #self.__datavalues = pyparsing.Word(pyparsing.nums).setParseAction(lambda tokens : float(tokens[0])) + \
+      #pyparsing.OneOrMore(pyparsing.Word(pyparsing.nums).setParseAction(lambda tokens : float(tokens[0])))
       
     # The StaibDat object should know where its data came from.
     self["filename"] = filename
@@ -175,7 +179,10 @@ class StaibDat(dict):
     for datavaluesLine in self["fileText"][self.__datakeysLineIndx + 1:]:
       # Parse the line
       datavaluesList = self.__datavalues.parseString(datavaluesLine)
+      #pdb.set_trace()
       if len(self.__datakeysList) != len(datavaluesList):
+        print self.__datakeysList
+        print datavaluesList
         raise FormatError
     
 

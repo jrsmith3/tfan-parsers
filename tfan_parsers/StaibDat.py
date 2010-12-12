@@ -179,10 +179,7 @@ class StaibDat(dict):
     for datavaluesLine in self["fileText"][self.__datakeysLineIndx + 1:]:
       # Parse the line
       datavaluesList = self.__datavalues.parseString(datavaluesLine)
-      #pdb.set_trace()
       if len(self.__datakeysList) != len(datavaluesList):
-        print self.__datakeysList
-        print datavaluesList
         raise FormatError
     
 

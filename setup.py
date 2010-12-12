@@ -4,7 +4,7 @@
 from distutils.core import setup
 
 setup(name='tfan_parsers',
-      version='03',
+      version='05',
       author='Joshua Ryan Smith',
       author_email='joshua.r.smith@gmail.com',
       url='http://github.com/jrsmith3/tfan-parsers',

@@ -298,7 +298,7 @@ class StaibDat(dict):
     """
     
     self["KE"] = numpy.array(self["Basis"]["value"])/1000
-    self["BE"] = self["KE"] - self["SourceEnergy"]
+    self["BE"] = self["SourceEnergy"] - self["KE"]
     
     # First, find the line where the datakeys are.
     datakeysLine = self.__lineTypeList.index("datakeys")

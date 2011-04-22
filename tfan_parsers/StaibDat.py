@@ -398,3 +398,56 @@ class StaibDat(dict):
         value += weight * data[i + offset]
       smooth_data.append(value)
     return numpy.array(smooth_data)
+
+
+
+
+    def gaussian_fit(self, key, index1, index2, order, backgroundtype, fit_size):
+    """
+    This method returns an n-peak Gaussian fit in the form of a numpy array, along with some Gaussian-related statistics. 
+
+    For a specified subset of the data, the outputs of this method are the median and standard deviation, sum of the least square errors (SSE), and the coefficient of determination (R^2) of the fitting. If there is more than one peak to be fitted, relative coefficients of each peak will also be returned. 
+
+    The inputs and their defaults are:
+       key: A string indicating which of the object's data should be analyzed (count data).
+       index1: A positive integer that corresponds to the index of the first energy value that is greater than the lower bound of the energy range to be gaussian fitted.
+       index2: A positive integer that corresponds to the index of the last energy value that is less than the upper bound of the energy range to be gaussian fitted.
+       order: A positive integer telling how many peaks should compose the fit. Default value is 1.
+       backgroundtype: A string indicating the background type to be removed.
+       fit_size: A positive integer indicating the desired number of evenly spaced data points in the returned Gaussian fit.       
+
+ 
+    """	
+    pass
+
+
+    def background(self, key, index1, index2, model):	
+    """
+    This method will return another numpy array that is the background due to scattered electrons. 
+    
+    Rather than being a subtraction method, this will give an array that when plotted, is the background of your spectrum. This array can be subtracted from your spectrum as a precedent to the integrate() and gaussian_fit() methods.
+
+    The inputs are:
+    key: A string indicating which of the object's data should be analyzed.
+    index1: A positive integer that corresponds to the index of the first energy value that is greater than the lower bound of the energy range to be gaussian fitted.
+       index2: A positive integer that corresponds to the index of the last energy value that is less than the upper bound of the energy range to be gaussian fitted.
+    model: A string indicating what type of background algorithm to use. This may be either a linear background, Shirley type background, Tougaard type background, or blended Shirley type background.
+    
+    """
+    pass	
+	
+	
+    def integrate(self, abscissa, ordinate, index1, index2, backgroundtype, integralmethod, args): 
+    """
+    This method will allow you to calculate the area under a spectrum, along with statistics/parameters from integration. 
+
+    The inputs are:
+       abscissa: A string indicating which of the object's data will be the abscissa values (KE, BE).
+       ordinate: A string indicating which of the object's data will be the ordinate values (count data).
+       index1: A positive integer that corresponds to the index of the first energy value that is greater than the lower bound of the energy range to be integrated.
+       index2: A positive integer that corresponds to the index of the last energy value that is less than the upper bound of the energy range to be integrated.	
+       backgroundtype: A string indicating the background type to be removed.
+       integralmethod: A string indicating method of integration (Simpson, etc). 
+       args: Other arguments affecting the integration method.
+    """
+    pass

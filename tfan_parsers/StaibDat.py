@@ -10,31 +10,55 @@ class StaibDat(dict):
   """
   Imports XPS and AES data from Staib .dat file and provides useful features.
 
-  The StaibDat class imports data from a Staib AES or XPS .dat file created by the winspectro software, and makes this data available like a python dictionary. The class tests the data file and the data itself before it returns an object. There is no published standard for the data files generated from the winspectro software; the best guess of the structure of these files is documented in WINSPECTRO_DATA_FILE_STRUCTURE.TXT. This importer is written against the description in that file.
+  The StaibDat class imports data from a Staib AES or XPS .dat file created by
+  the winspectro software, and makes this data available like a python
+  dictionary. The class tests the data file and the data itself before it
+  returns an object. There is no published standard for the data files
+  generated from the winspectro software; the best guess of the structure of
+  these files is documented in WINSPECTRO_DATA_FILE_STRUCTURE.TXT. This
+  importer is written against the description in that file.
   
-  There are several ways to access data in a StaibDat object. Since the winspectro .dat files resemble the key value pairs of a dictionary, the user can directly access the data pulled in from the file simply via the key in the data file. The StaibDat class fixes any keys in the .dat file so that there are no spaces or characters that aren't text, numbers or dashes.
+  There are several ways to access data in a StaibDat object. Since the
+  winspectro .dat files resemble the key value pairs of a dictionary, the user
+  can directly access the data pulled in from the file simply via the key in
+  the data file. The StaibDat class fixes any keys in the .dat file so that
+  there are no spaces or characters that aren't text, numbers or dashes.
   
-  Some of the data in a winspectro .dat file come with explicit units, while some of the data has implicit units. This class will only include the explicit units in the returned StaibDat object. See the WINSPECTRO_DATA_FILE_STRUCTURE.TXT for my best guess about the implicit units of some of the data.
+  Some of the data in a winspectro .dat file come with explicit units, while
+  some of the data has implicit units. This class will only include the
+  explicit units in the returned StaibDat object. See the
+  WINSPECTRO_DATA_FILE_STRUCTURE.TXT for my best guess about the implicit
+  units of some of the data.
   
-  In the winspectro .dat file, there appear to be two main sections: the metadata section at the top, and the data section below. For metadata with units, the StaibDat object returns a dictionary containing the value and unit. Otherwise, accessing the metadata will return only a value. For data, each key returns a dictionary containing a unit (possibly empty) and a list of values.
+  In the winspectro .dat file, there appear to be two main sections: the
+  metadata section at the top, and the data section below. For metadata with
+  units, the StaibDat object returns a dictionary containing the value and
+  unit. Otherwise, accessing the metadata will return only a value. For data,
+  each key returns a dictionary containing a unit (possibly empty) and a list
+  of values.
   
-  In addition to keys explicit in the .dat file, the StaibDat class provides the following data and methods for the convenience of the user (units in brackets):
+  In addition to keys explicit in the .dat file, the StaibDat class provides
+  the following data and methods for the convenience of the user (units in
+  brackets):
     filename: The name of the file from which the data in the object came.
-    fileText: A list with the full text of the data file. Each list item 
-      contains a single line of the file.
-    KE [eV]: A numpy array containing the kinetic energy value of the electrons.
-    BE [eV]: A numpy array containing the binding energy of the electrons 
-      calculated using the value of the source energy. Note that this array will
-      still be calculated for AES data, but will equal KE since the source 
-      energy is zero.
+    fileText: A list with the full text of the data file. Each list item
+    contains a single line of the file.
+    KE [eV]: A numpy array containing the kinetic energy value of the
+    electrons.
+    BE [eV]: A numpy array containing the binding energy of the electrons
+    calculated using the value of the source energy. Note that this array will
+    still be calculated for AES data, but will equal KE since the source
+    energy is zero.
     Cn [count]: A numpy array containing the number of counts for a particular
-      energy for channel n. Note that n is an index which can equal any integer.
-      When accessing this data, the user will have to specify the index. 
-      Attempting to access the literal Cn data will fail.
+    energy for channel n. Note that n is an index which can equal any integer.
+    When accessing this data, the user will have to specify the index.
+    Attempting to access the literal Cn data will fail.
     smooth: Method that returns a numpy array of smoothed data.
-    differentiate: Method that returns numpy array of first derivative of data.
+    differentiate: Method that returns numpy array of first derivative of
+    data.
       
-  Generally, the user will find it easiest to work with the KE, BE, etc. data as opposed to the dictionary data pulled from the file itself.
+  Generally, the user will find it easiest to work with the KE, BE, etc. data
+  as opposed to the dictionary data pulled from the file itself.
   """
   
   #== How the StaibDat class works ==
@@ -398,11 +422,8 @@ class StaibDat(dict):
         value += weight * data[i + offset]
       smooth_data.append(value)
     return numpy.array(smooth_data)
-
-
-
-
-    def gaussian_fit(self, key, index1, index2, order, backgroundtype, fit_size):
+  
+  def gaussian_fit(self, key, index1, index2, order, backgroundtype, fit_size):
     """
     This method returns an n-peak Gaussian fit in the form of a numpy array, along with some Gaussian-related statistics. 
 
@@ -417,27 +438,44 @@ class StaibDat(dict):
        fit_size: A positive integer indicating the desired number of evenly spaced data points in the returned Gaussian fit.       
 
  
-    """	
+    """
     pass
 
 
-    def background(self, key, index1, index2, model):	
+  def rm_background(self, key, loBE = self["BE"][0], hiBE = self["BE"][-1], size = 0, model = "linear"):
     """
-    This method will return another numpy array that is the background due to scattered electrons. 
+    Return a numpy array corresponding to the background electron count.
     
-    Rather than being a subtraction method, this will give an array that when plotted, is the background of your spectrum. This array can be subtracted from your spectrum as a precedent to the integrate() and gaussian_fit() methods.
+    XPS data typically consists of the sum of the signal from an XPS event and
+    some background count from scattered electrons. rm_background calculates
+    the background electron count over a specified interval and returns an
+    array with this data. The interval is defined by the loBE and hiBE input
+    arguments, the default being the lower bound and upper bound of the
+    object's binding energy data, respectively. The returned array has
+    elements corresponding to the elements in self["BE"] in the specified
+    energy interval by default. An array with an arbitrary number of elements
+    can be returned by specifying an integer for the "size" argument.
 
-    The inputs are:
-    key: A string indicating which of the object's data should be analyzed.
-    index1: A positive integer that corresponds to the index of the first energy value that is greater than the lower bound of the energy range to be gaussian fitted.
-       index2: A positive integer that corresponds to the index of the last energy value that is less than the upper bound of the energy range to be gaussian fitted.
-    model: A string indicating what type of background algorithm to use. This may be either a linear background, Shirley type background, Tougaard type background, or blended Shirley type background.
-    
+    Input arguments as well as their units and default values are given as
+    follows:
+      key: A string indicating which of the object's data should be analyzed.
+      loBE [eV]: Numerical value of the lower bound of the binding energy
+      interval to be analyzed. Default: lower bound of the object's binding
+      energy.
+      hiBE [eV]: Numerical value of the lower bound of the binding energy
+      interval to be analyzed. Default: upper bound of the object's binding
+      energy.
+      size: Integer specifying the number of elements the returned array
+      should have. Default: number of elements in self["BE"] between loBE and
+      hiBE.
+      model: A string indicating the name of background removal algorithm to
+      use. Valid input is "linear", "shirley", "tougaard", or "blended" for
+      blended Shirley type background.
     """
-    pass	
-	
-	
-    def integrate(self, abscissa, ordinate, index1, index2, backgroundtype, integralmethod, args): 
+    pass
+
+
+  def integrate(self, abscissa, ordinate, index1, index2, backgroundtype, integralmethod, args): 
     """
     This method will allow you to calculate the area under a spectrum, along with statistics/parameters from integration. 
 
